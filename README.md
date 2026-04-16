@@ -1,4 +1,4 @@
-# Rooster 🐓
+# Rooster <img src="images/wakeup-rooster-36.png" alt="Rooster" width="28" valign="middle">
 
 **Rooster** keeps your Mac awake — a macOS menu bar app inspired by [KeepingYouAwake](https://github.com/newmarcel/KeepingYouAwake), rebuilt entirely in Swift with exclusive new features.
 
