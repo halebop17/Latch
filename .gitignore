@@ -1,0 +1,31 @@
+# Xcode build output
+.build/
+*.xcodeproj/xcuserdata/
+*.xcodeproj/project.xcworkspace/xcuserdata/
+*.xcworkspace/xcuserdata/
+DerivedData/
+
+# Generated Xcode project (xcodegen)
+Rooster.xcodeproj/
+
+# macOS
+.DS_Store
+**/.DS_Store
+
+# Distribution staging
+Distribution/dmg-staging/
+Distribution/*.dmg
+Distribution/*.sha256
+
+# Swift Package Manager
+.swiftpm/
+Packages/
+
+# Editor
+.vscode/
+*.swp
+*.swo
+
+# Credentials / secrets
+*.p12
+*.mobileprovision
