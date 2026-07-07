@@ -32,3 +32,6 @@ Packages/
 # Credentials / secrets
 *.p12
 *.mobileprovision
+
+# Xcode build output (xcodebuild -derivedDataPath build)
+build/

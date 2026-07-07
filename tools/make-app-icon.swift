@@ -1,97 +1,86 @@
-// Generates AppIcon.appiconset from the pixel-art rooster in images/wakeup-rooster.png,
-// centered on an orange-gradient rounded rectangle (full-bleed, like the previous icon).
+// Builds AppIcon.appiconset from the provided artwork at
+// latch-icon/ios/AppIcon-1024.png, wrapped in a macOS-style rounded tile
+// (small transparent margin + soft shadow) so it looks native in the Dock.
 //
-// Usage (from the repo root):
-//   swift tools/make-app-icon.swift
+//   swift tools/make-app-icon.swift            # 512 + 128 previews to icon-previews/
+//   swift tools/make-app-icon.swift --emit     # also writes the .xcassets PNGs
 
 import AppKit
 
-let sourcePath = "images/wakeup-rooster.png"
+let sourcePath = "latch-icon/ios/AppIcon-1024.png"
+let previewDir = "icon-previews"
 let outDir = "Latch/Assets.xcassets/AppIcon.appiconset"
+let emit = CommandLine.arguments.contains("--emit")
 
 guard let source = NSImage(contentsOfFile: sourcePath),
-      let sourceCG = source.cgImage(forProposedRect: nil, context: nil, hints: nil) else {
+      let master = source.cgImage(forProposedRect: nil, context: nil, hints: nil) else {
     fatalError("could not load \(sourcePath) — run from the repo root")
 }
 
 func makeContext(_ px: Int) -> CGContext {
     let cs = CGColorSpace(name: CGColorSpace.sRGB)!
-    return CGContext(data: nil, width: px, height: px, bitsPerComponent: 8,
-                     bytesPerRow: 0, space: cs,
-                     bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue)!
+    let ctx = CGContext(data: nil, width: px, height: px, bitsPerComponent: 8,
+                        bytesPerRow: 0, space: cs,
+                        bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue)!
+    ctx.setAllowsAntialiasing(true); ctx.interpolationQuality = .high
+    return ctx
 }
-
 func writePNG(_ img: CGImage, _ path: String) {
     let rep = NSBitmapImageRep(cgImage: img)
     let data = rep.representation(using: .png, properties: [:])!
-    try? FileManager.default.createDirectory(atPath: (path as NSString).deletingLastPathComponent,
-                                             withIntermediateDirectories: true)
-    try! data.write(to: URL(fileURLWithPath: path))
-    print("wrote \(path)")
+    try? FileManager.default.createDirectory(atPath: (path as NSString).deletingLastPathComponent, withIntermediateDirectories: true)
+    try! data.write(to: URL(fileURLWithPath: path)); print("wrote \(path)")
 }
 
-// 1024px master
-let master: CGImage = {
-    let px = 1024
-    let ctx = makeContext(px)
+func renderIcon(_ px: Int) -> CGImage {
+    let ctx = makeContext(px); let p = CGFloat(px)
+    let inset = p * 0.055                 // small margin so it sits like other Dock icons
+    let t = p - 2 * inset
+    let corner = t * 0.2237              // Big Sur-ish continuous corner
+    let rect = CGRect(x: inset, y: inset, width: t, height: t)
 
-    // Rounded-rect background with vertical orange gradient
-    let rect = CGRect(x: 0, y: 0, width: px, height: px)
-    let path = CGPath(roundedRect: rect, cornerWidth: 180, cornerHeight: 180, transform: nil)
-    ctx.addPath(path)
+    // Soft drop shadow beneath the tile.
+    ctx.saveGState()
+    ctx.setShadow(offset: CGSize(width: 0, height: -p * 0.01), blur: p * 0.025,
+                  color: CGColor(red: 0, green: 0, blue: 0, alpha: 0.28))
+    ctx.addPath(CGPath(roundedRect: rect, cornerWidth: corner, cornerHeight: corner, transform: nil))
+    ctx.setFillColor(CGColor(red: 0, green: 0, blue: 0, alpha: 1)); ctx.fillPath()
+    ctx.restoreGState()
+
+    // Clip to the rounded tile and draw the artwork edge-to-edge.
+    ctx.saveGState()
+    ctx.addPath(CGPath(roundedRect: rect, cornerWidth: corner, cornerHeight: corner, transform: nil))
     ctx.clip()
-    let colors = [
-        CGColor(red: 1.00, green: 0.72, blue: 0.30, alpha: 1),  // #FFB84D top
-        CGColor(red: 0.94, green: 0.44, blue: 0.00, alpha: 1),  // #EF7000 bottom
-    ] as CFArray
-    let gradient = CGGradient(colorsSpace: CGColorSpace(name: CGColorSpace.sRGB)!,
-                              colors: colors, locations: [0, 1])!
-    ctx.drawLinearGradient(gradient,
-                           start: CGPoint(x: 200, y: 1024),
-                           end: CGPoint(x: 824, y: 0),
-                           options: [.drawsBeforeStartLocation, .drawsAfterEndLocation])
-
-    // Pixel-art rooster, nearest-neighbor so the pixels stay crisp
-    ctx.interpolationQuality = .none
-    let roosterSize: CGFloat = 720
-    let x = (CGFloat(px) - roosterSize) / 2
-    let y = (CGFloat(px) - roosterSize) / 2
-    ctx.draw(sourceCG, in: CGRect(x: x, y: y, width: roosterSize, height: roosterSize))
+    ctx.draw(master, in: rect)
+    ctx.restoreGState()
 
     return ctx.makeImage()!
-}()
-
-// Downscale master to each icon size
-func scaled(_ px: Int) -> CGImage {
-    let ctx = makeContext(px)
-    ctx.interpolationQuality = .high
-    ctx.draw(master, in: CGRect(x: 0, y: 0, width: px, height: px))
-    return ctx.makeImage()!
 }
 
-for px in [16, 32, 64, 128, 256, 512, 1024] {
-    writePNG(px == 1024 ? master : scaled(px), "\(outDir)/icon_\(px).png")
-}
+writePNG(renderIcon(512), "\(previewDir)/app-icon.png")
+writePNG(renderIcon(128), "\(previewDir)/app-icon-128.png")
 
-let contents = """
-{
-  "images" : [
-    { "filename" : "icon_16.png",   "idiom" : "mac", "scale" : "1x", "size" : "16x16" },
-    { "filename" : "icon_32.png",   "idiom" : "mac", "scale" : "2x", "size" : "16x16" },
-    { "filename" : "icon_32.png",   "idiom" : "mac", "scale" : "1x", "size" : "32x32" },
-    { "filename" : "icon_64.png",   "idiom" : "mac", "scale" : "2x", "size" : "32x32" },
-    { "filename" : "icon_128.png",  "idiom" : "mac", "scale" : "1x", "size" : "128x128" },
-    { "filename" : "icon_256.png",  "idiom" : "mac", "scale" : "2x", "size" : "128x128" },
-    { "filename" : "icon_256.png",  "idiom" : "mac", "scale" : "1x", "size" : "256x256" },
-    { "filename" : "icon_512.png",  "idiom" : "mac", "scale" : "2x", "size" : "256x256" },
-    { "filename" : "icon_512.png",  "idiom" : "mac", "scale" : "1x", "size" : "512x512" },
-    { "filename" : "icon_1024.png", "idiom" : "mac", "scale" : "2x", "size" : "512x512" }
-  ],
-  "info" : {
-    "author" : "xcode",
-    "version" : 1
-  }
+if emit {
+    for px in [16, 32, 64, 128, 256, 512, 1024] {
+        writePNG(renderIcon(px), "\(outDir)/icon_\(px).png")
+    }
+    let contents = """
+    {
+      "images" : [
+        { "filename" : "icon_16.png",   "idiom" : "mac", "scale" : "1x", "size" : "16x16" },
+        { "filename" : "icon_32.png",   "idiom" : "mac", "scale" : "2x", "size" : "16x16" },
+        { "filename" : "icon_32.png",   "idiom" : "mac", "scale" : "1x", "size" : "32x32" },
+        { "filename" : "icon_64.png",   "idiom" : "mac", "scale" : "2x", "size" : "32x32" },
+        { "filename" : "icon_128.png",  "idiom" : "mac", "scale" : "1x", "size" : "128x128" },
+        { "filename" : "icon_256.png",  "idiom" : "mac", "scale" : "2x", "size" : "128x128" },
+        { "filename" : "icon_256.png",  "idiom" : "mac", "scale" : "1x", "size" : "256x256" },
+        { "filename" : "icon_512.png",  "idiom" : "mac", "scale" : "2x", "size" : "256x256" },
+        { "filename" : "icon_512.png",  "idiom" : "mac", "scale" : "1x", "size" : "512x512" },
+        { "filename" : "icon_1024.png", "idiom" : "mac", "scale" : "2x", "size" : "512x512" }
+      ],
+      "info" : { "author" : "xcode", "version" : 1 }
+    }
+    """
+    try! contents.write(toFile: "\(outDir)/Contents.json", atomically: true, encoding: .utf8)
+    print("wrote \(outDir)/Contents.json")
 }
-"""
-try! contents.write(toFile: "\(outDir)/Contents.json", atomically: true, encoding: .utf8)
-print("wrote \(outDir)/Contents.json")
