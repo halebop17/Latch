@@ -1,26 +1,26 @@
-name: Rooster
+name: Latch
 
 options:
-  bundleIdPrefix: com.rooster
+  bundleIdPrefix: com.latch
   createIntermediateGroups: true
   deploymentTarget:
     macOS: "13.0"
   xcodeVersion: "16"
 
 targets:
-  Rooster:
+  Latch:
     type: application
     platform: macOS
     deploymentTarget: "13.0"
 
     sources:
-      - path: Rooster
+      - path: Latch
 
     dependencies:
       - sdk: AppIntents.framework
 
     info:
-      path: Rooster/Info.plist
+      path: Latch/Info.plist
       properties:
         CFBundleVersion: "1"
         CFBundleShortVersionString: "1.0.0"
@@ -28,13 +28,13 @@ targets:
         NSPrincipalClass: NSApplication
         NSHighResolutionCapable: true
         CFBundleURLTypes:
-          - CFBundleURLName: Rooster URL Scheme
+          - CFBundleURLName: Latch URL Scheme
             CFBundleURLSchemes:
-              - rooster
+              - latch
 
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.rooster.app
+        PRODUCT_BUNDLE_IDENTIFIER: com.latch.app
         SWIFT_VERSION: "5"
         MACOSX_DEPLOYMENT_TARGET: "13.0"
         # Ad-hoc signing — works locally without a Developer ID certificate

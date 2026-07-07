@@ -17,6 +17,9 @@ Distribution/dmg-staging/
 Distribution/*.dmg
 Distribution/*.sha256
 
+# Icon previews from tools/make-status-icons.swift
+icon-previews/
+
 # Swift Package Manager
 .swiftpm/
 Packages/

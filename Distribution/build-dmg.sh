@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# build-dmg.sh — Build Rooster.app and package it into a distributable DMG.
+# build-dmg.sh — Build Latch.app and package it into a distributable DMG.
 #
 # Usage:
 #   ./Distribution/build-dmg.sh            # Debug build
@@ -21,8 +21,8 @@ if [[ "${1:-}" == "--release" ]]; then
   CONFIGURATION="Release"
 fi
 
-APP_NAME="Rooster"
-BUNDLE_ID="com.rooster.app"
+APP_NAME="Latch"
+BUNDLE_ID="com.latch.app"
 BUILD_DIR="$REPO_ROOT/.build/Build/Products/$CONFIGURATION"
 APP_PATH="$BUILD_DIR/$APP_NAME.app"
 DIST_DIR="$REPO_ROOT/Distribution/dmg-staging"
