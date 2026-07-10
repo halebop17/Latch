@@ -93,8 +93,11 @@ final class StatusItemController: NSObject {
             )
             item.target = self
             item.representedObject = duration
-            // Checkmark on the preset this session was started with
-            if awakeManager.isActive && awakeManager.activatedSeconds == duration.seconds {
+            // Checkmark on the preset this session was started with.
+            // A process latch is indefinite internally but wasn't started from a preset.
+            if awakeManager.isActive,
+               awakeManager.activationReason != .process,
+               awakeManager.activatedSeconds == duration.seconds {
                 item.state = .on
             }
             menu.addItem(item)
@@ -112,6 +115,36 @@ final class StatusItemController: NSObject {
         }
         untilItem.submenu = untilMenu
         menu.addItem(untilItem)
+
+        // Latch onto App… — stay awake until a chosen running app quits
+        let latchItem = NSMenuItem(title: "Latch onto App…", action: nil, keyEquivalent: "")
+        let appsMenu = NSMenu()
+        let apps = Self.latchableApps()
+        if apps.isEmpty {
+            let none = NSMenuItem(title: "No running apps", action: nil, keyEquivalent: "")
+            none.isEnabled = false
+            appsMenu.addItem(none)
+        } else {
+            for app in apps {
+                let name = app.localizedName ?? "App"
+                let item = NSMenuItem(title: name, action: #selector(latchOntoApp(_:)), keyEquivalent: "")
+                item.target = self
+                item.representedObject = app
+                if let icon = app.icon {
+                    icon.size = NSSize(width: 16, height: 16)
+                    item.image = icon
+                }
+                // Checkmark the app we're currently latched onto (keyed on PID so two
+                // apps with the same name don't both get checked)
+                if awakeManager.activationReason == .process,
+                   awakeManager.watchedPID == app.processIdentifier {
+                    item.state = .on
+                }
+                appsMenu.addItem(item)
+            }
+        }
+        latchItem.submenu = appsMenu
+        menu.addItem(latchItem)
 
         menu.addItem(.separator())
 
@@ -136,6 +169,9 @@ final class StatusItemController: NSObject {
 
     private func statusLine() -> String {
         guard awakeManager.isActive else { return "Inactive" }
+        if awakeManager.activationReason == .process, let name = awakeManager.watchedProcessName {
+            return "Active — until \(name) quits"
+        }
         var line = awakeManager.fireDate != nil
             ? "Active — \(formatTime(awakeManager.remainingSeconds)) remaining"
             : "Active — indefinitely"
@@ -181,6 +217,25 @@ final class StatusItemController: NSObject {
         let seconds = date.timeIntervalSinceNow
         guard seconds > 0 else { return }
         awakeManager.activate(seconds: seconds)
+    }
+
+    @objc private func latchOntoApp(_ sender: NSMenuItem) {
+        guard let app = sender.representedObject as? NSRunningApplication else { return }
+        awakeManager.activate(watchingPID: app.processIdentifier,
+                              name: app.localizedName ?? "App")
+    }
+
+    /// Regular (Dock-visible) apps other than Latch, sorted by name — the candidates
+    /// worth waiting on.  Background agents and daemons are excluded by .regular.
+    private static func latchableApps() -> [NSRunningApplication] {
+        let ownPID = ProcessInfo.processInfo.processIdentifier
+        return NSWorkspace.shared.runningApplications
+            .filter { $0.activationPolicy == .regular
+                      && $0.processIdentifier != ownPID
+                      && !$0.isTerminated }
+            .sorted {
+                ($0.localizedName ?? "").localizedCaseInsensitiveCompare($1.localizedName ?? "") == .orderedAscending
+            }
     }
 
     @objc private func deactivateAction() {

@@ -14,6 +14,7 @@
 - **One-click toggle** — click the menu bar icon to keep your Mac awake
 - **Duration presets** — 5 min · 15 min · 30 min · 1 h · 2 h · 5 h · Indefinite
 - **Until…** — stay awake until a chosen clock time, and **Extend by 15 min** on a running timer
+- **Latch onto an app** — pick a running app and stay awake *until it quits*, then sleep and tell you it finished. Perfect for exports, uploads, or long builds — no guessing how long to set. (For command-line jobs, see `waitpid` in the URL scheme.)
 - **Live countdown** in the menu bar (`🐙 1:47`)
 - **Choice of menu bar icon** — Octopus (default), Meerkat, or Night Owl, each with an awake/asleep state
 - **Allow display sleep** — keep the system awake but let the screen turn off
@@ -103,8 +104,15 @@ swift tools/make-crow-sound.swift            # activation chime
 | `latch:///activate?minutes=N` | Activate for N minutes |
 | `latch:///activate?hours=N` | Activate for N hours |
 | `latch:///activate?seconds=N` | Activate for N seconds |
+| `latch:///activate?waitpid=PID` | Activate until process `PID` exits |
 | `latch:///deactivate` | Deactivate |
 | `latch:///toggle` | Toggle current state |
+
+Wait for a command-line job to finish, then let the Mac sleep:
+
+```bash
+make -j8 & open "latch:///activate?waitpid=$!"; wait
+```
 
 ---
 
@@ -117,6 +125,7 @@ CaffeineService      — spawns / kills caffeinate subprocess
 AwakeManager         — state machine, wires all services together
 StatusItemController — NSStatusItem, icon, countdown display
 CrowScheduleService  — 30s tick checks time-window schedules
+ProcessMonitor       — kqueue DispatchSource fires when a watched PID exits
 GlobalHotkeyService  — Carbon RegisterEventHotKey (no Accessibility needed)
 FocusModeMonitor     — reads the Do Not Disturb assertions file (needs Full Disk Access)
 SessionLogService    — persists last 50 sessions to UserDefaults

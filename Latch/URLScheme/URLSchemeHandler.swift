@@ -1,4 +1,4 @@
-import Foundation
+import AppKit
 
 /// Handles the custom URL scheme  latch://
 ///
@@ -7,6 +7,7 @@ import Foundation
 ///   latch:///activate?minutes=30    → 30 minutes
 ///   latch:///activate?seconds=90    → 90 seconds
 ///   latch:///activate?hours=2       → 2 hours
+///   latch:///activate?waitpid=1234  → until process 1234 exits
 ///   latch:///deactivate
 ///   latch:///toggle
 enum URLSchemeHandler {
@@ -20,7 +21,12 @@ enum URLSchemeHandler {
         DispatchQueue.main.async {
             switch action {
             case "activate":
-                if let raw = params["seconds"], let v = Double(raw) {
+                if let raw = params["waitpid"] {
+                    // Malformed/overflow PID → no-op, never fall through to an indefinite session.
+                    guard let pid = pid_t(raw), pid > 0 else { break }
+                    let name = NSRunningApplication(processIdentifier: pid)?.localizedName ?? "process \(pid)"
+                    awakeManager.activate(watchingPID: pid, name: name)
+                } else if let raw = params["seconds"], let v = Double(raw) {
                     awakeManager.activate(seconds: ceil(v), reason: .urlScheme)
                 } else if let raw = params["minutes"], let v = Double(raw) {
                     awakeManager.activate(seconds: ceil(v) * 60, reason: .urlScheme)

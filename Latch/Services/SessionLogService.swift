@@ -22,12 +22,12 @@ final class SessionLogService: ObservableObject {
 
     // MARK: - Public
 
-    func record(start: Date, end: Date, reason: ActivationReason) {
+    func record(start: Date, end: Date, reason: ActivationReason, detail: String? = nil) {
         let session = AwakeSession(
             startDate: start,
             endDate: end,
             durationSeconds: end.timeIntervalSince(start),
-            reason: reason.rawValue
+            reason: detail.map { "\(reason.rawValue) · \($0)" } ?? reason.rawValue
         )
         sessions.insert(session, at: 0)
         if sessions.count > maxEntries {

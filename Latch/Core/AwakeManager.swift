@@ -13,8 +13,13 @@ final class AwakeManager: ObservableObject {
     @Published private(set) var activationReason: ActivationReason?
     /// The requested length of the current session (0 = indefinite) — drives menu checkmarks.
     @Published private(set) var activatedSeconds: TimeInterval = 0
+    /// Name of the app/process this session is latched onto, if any (drives the menu label).
+    @Published private(set) var watchedProcessName: String?
+    /// PID this session is latched onto, if any (drives the menu checkmark; disambiguates same-named apps).
+    @Published private(set) var watchedPID: pid_t?
 
     private let caffeineService = CaffeineService()
+    private let processMonitor  = ProcessMonitor()
 
     // Phase 2 services
     let batteryMonitor     = BatteryMonitor()
@@ -31,6 +36,8 @@ final class AwakeManager: ObservableObject {
     /// Holds the state when the user switches accounts so it can be resumed.
     private var suspendedSeconds: TimeInterval = -1
     private var suspendedReason: ActivationReason = .manual
+    private var suspendedWatchPID: pid_t?
+    private var suspendedWatchName: String = ""
 
     private init() {
         // Sync state when caffeinate exits externally (e.g. its -t timer fires)
@@ -85,11 +92,17 @@ final class AwakeManager: ObservableObject {
 
     // MARK: - Activation
 
-    func activate(seconds: TimeInterval = 0, reason: ActivationReason = .manual) {
+    func activate(seconds: TimeInterval = 0, reason: ActivationReason = .manual, notify: Bool = true) {
         guard caffeineService.start(
             seconds: seconds,
             allowDisplaySleep: AppSettings.allowDisplaySleep
         ) else { return }
+        // A new session supersedes the previous one: log the old span before it's
+        // overwritten, and drop any process-watch it left behind.
+        recordCurrentSessionIfActive()
+        processMonitor.cancel()
+        watchedProcessName = nil
+        watchedPID = nil
         isActive = true
         activationReason = reason
         activatedSeconds = seconds
@@ -111,13 +124,31 @@ final class AwakeManager: ObservableObject {
         if AppSettings.playCrowSound {
             CrowSoundPlayer.play()
         }
-        if AppSettings.notificationsEnabled {
+        if notify && AppSettings.notificationsEnabled {
             NotificationService.shared.notifyActivated(fireDate: fireDate)
         }
     }
 
     func activate(duration: ActivationDuration, reason: ActivationReason = .manual) {
         activate(seconds: duration.seconds, reason: reason)
+    }
+
+    /// Stay awake indefinitely until the process with `pid` exits, then deactivate.
+    /// No-ops if the process isn't alive (nothing to wait for).
+    func activate(watchingPID pid: pid_t, name: String, notify: Bool = true) {
+        guard pid > 0, kill(pid, 0) == 0 else { return }
+        activate(seconds: 0, reason: .process, notify: false)   // clears any prior watch; suppress the generic notice
+        watchedProcessName = name
+        watchedPID = pid
+        let started = processMonitor.watch(pid: pid) { [weak self] in
+            self?.handleWatchedProcessExit(name: name)
+        }
+        // Vanishingly rare: the process died between the guard above and here.
+        // Don't leave an indefinite session with nothing to end it.
+        if !started { handleWatchedProcessExit(name: name); return }
+        if notify && AppSettings.notificationsEnabled {
+            NotificationService.shared.notifyProcessStarted(name: name)   // tailored "until <app> quits"
+        }
     }
 
     /// Adds time to the current timed session without restarting or re-notifying.
@@ -156,6 +187,16 @@ final class AwakeManager: ObservableObject {
         }
     }
 
+    /// The process we latched onto has exited — let the Mac sleep and say which app finished.
+    private func handleWatchedProcessExit(name: String) {
+        guard isActive else { return }
+        caffeineService.stop()
+        finishDeactivation(sendNotification: false)   // suppress the generic notice…
+        if AppSettings.notificationsEnabled {
+            NotificationService.shared.notifyProcessFinished(name: name)   // …send a tailored one
+        }
+    }
+
     private func startCountdown() {
         stopCountdown()
         let timer = Timer(timeInterval: 1.0, repeats: true) { [weak self] _ in
@@ -179,17 +220,26 @@ final class AwakeManager: ObservableObject {
         countdownTimer = nil
     }
 
+    /// Logs the in-progress session (if any) to the session log, then clears its start
+    /// marker so it can't be double-counted.  Called both on deactivation and when one
+    /// session supersedes another.
+    private func recordCurrentSessionIfActive() {
+        guard isActive, let start = sessionStartDate else { return }
+        let detail = (activationReason == .process) ? watchedProcessName : nil
+        SessionLogService.shared.record(start: start, end: Date(),
+                                        reason: activationReason ?? .manual, detail: detail)
+        sessionStartDate = nil
+    }
+
     private func finishDeactivation(sendNotification: Bool) {
         stopCountdown()
-
-        // Record session before clearing state
-        if let start = sessionStartDate {
-            SessionLogService.shared.record(start: start, end: Date(), reason: activationReason ?? .manual)
-            sessionStartDate = nil
-        }
+        processMonitor.cancel()
+        recordCurrentSessionIfActive()
 
         isActive = false
         activationReason = nil
+        watchedProcessName = nil
+        watchedPID = nil
         fireDate = nil
         remainingSeconds = 0
         activatedSeconds = 0
@@ -241,15 +291,27 @@ final class AwakeManager: ObservableObject {
         guard AppSettings.deactivateOnUserSwitch, isActive else { return }
         // min 1s: a timer that expired during the switch must not resume as indefinite
         // (0 means "indefinite" to activate(seconds:)).
-        suspendedSeconds = fireDate.map { max(1, $0.timeIntervalSinceNow) } ?? 0
-        suspendedReason  = activationReason ?? .manual
+        suspendedSeconds   = fireDate.map { max(1, $0.timeIntervalSinceNow) } ?? 0
+        suspendedReason    = activationReason ?? .manual
+        suspendedWatchPID  = (activationReason == .process) ? watchedPID : nil
+        suspendedWatchName = watchedProcessName ?? ""
         caffeineService.stop()
         finishDeactivation(sendNotification: false)
     }
 
     @objc private func sessionBecameActive() {
         guard AppSettings.deactivateOnUserSwitch, suspendedSeconds >= 0 else { return }
-        activate(seconds: suspendedSeconds, reason: suspendedReason)
-        suspendedSeconds = -1
+        // Resume silently to mirror the suppressed suspend notification.
+        if suspendedReason == .process {
+            // Re-establish the process-watch; if it died while switched away,
+            // activate(watchingPID:) no-ops rather than starting an unstoppable session.
+            if let pid = suspendedWatchPID {
+                activate(watchingPID: pid, name: suspendedWatchName, notify: false)
+            }
+        } else {
+            activate(seconds: suspendedSeconds, reason: suspendedReason, notify: false)
+        }
+        suspendedSeconds  = -1
+        suspendedWatchPID = nil
     }
 }

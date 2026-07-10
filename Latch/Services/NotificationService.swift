@@ -33,6 +33,20 @@ final class NotificationService {
         post(content, identifier: "latch.deactivated")
     }
 
+    func notifyProcessStarted(name: String) {
+        let content = UNMutableNotificationContent()
+        content.title = "Latch is awake 🐙"
+        content.body = "Your Mac will stay awake until \(name) quits."
+        post(content, identifier: "latch.activated")
+    }
+
+    func notifyProcessFinished(name: String) {
+        let content = UNMutableNotificationContent()
+        content.title = "\(name) finished 🐙"
+        content.body = "Latch let go — your Mac can sleep normally again."
+        post(content, identifier: "latch.processFinished")
+    }
+
     // MARK: - Private
 
     private func post(_ content: UNMutableNotificationContent, identifier: String) {

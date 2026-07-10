@@ -9,4 +9,5 @@ enum ActivationReason: String, Codable {
     case launch          = "On Launch"
     case hotkey          = "Hotkey (⌥⌘K)"
     case shortcut        = "Shortcut"
+    case process         = "App"
 }

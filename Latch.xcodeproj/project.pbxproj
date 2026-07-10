@@ -20,6 +20,7 @@
 		4D5543C56E042146BE9CEB17 /* StatusItemController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 08FDF028325873F15D0D4A44 /* StatusItemController.swift */; };
 		5821E1827BA626467CACBEF5 /* Localizable.strings in Resources */ = {isa = PBXBuildFile; fileRef = 2AF797CF5ACD1E4865A182C4 /* Localizable.strings */; };
 		5AEA0C478AC3FF2FD8E8AF99 /* URLSchemeHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = E0B83C724167805DDABF1B3F /* URLSchemeHandler.swift */; };
+		5E3732B9D3654D0555B70F3E /* ProcessMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 372650B7AFCBC175345BF563 /* ProcessMonitor.swift */; };
 		653930835BBCB5D964AD8CCA /* BatteryMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2A5F6C013A15ABA1245F3BF /* BatteryMonitor.swift */; };
 		71913AC52B8336A2F4D77914 /* MenuBarIconStyle.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5DA17A159C06135B68D312B9 /* MenuBarIconStyle.swift */; };
 		71D48AB4FE4905AFA31F412F /* AwakeManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9D0AD358BBD42B7511E81B6D /* AwakeManager.swift */; };
@@ -50,6 +51,7 @@
 		2603EABAF98285AC56154C25 /* LatchIntents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LatchIntents.swift; sourceTree = "<group>"; };
 		320F1DE6D921943C28A5F16C /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = en.lproj/Localizable.strings; sourceTree = "<group>"; };
 		350C39A4E351CCB317C77CFC /* CrowSchedule.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CrowSchedule.swift; sourceTree = "<group>"; };
+		372650B7AFCBC175345BF563 /* ProcessMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProcessMonitor.swift; sourceTree = "<group>"; };
 		39E6EECFE825CFDE896CC7C2 /* LatchApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LatchApp.swift; sourceTree = "<group>"; };
 		3EDCF3C36FB1E05CDA8C3EED /* crow.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = crow.wav; sourceTree = "<group>"; };
 		436CD32D766D4C966D1A28DF /* LoginItemManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoginItemManager.swift; sourceTree = "<group>"; };
@@ -132,6 +134,7 @@
 				436CD32D766D4C966D1A28DF /* LoginItemManager.swift */,
 				9871A90090CD1AF8B1579072 /* LowPowerModeMonitor.swift */,
 				45B5B6924FB23334D95AD606 /* NotificationService.swift */,
+				372650B7AFCBC175345BF563 /* ProcessMonitor.swift */,
 				11B7FE0D4C0C981F340DB95C /* SessionLogService.swift */,
 			);
 			path = Services;
@@ -313,6 +316,7 @@
 				08F982112F07E305722C1FF7 /* LowPowerModeMonitor.swift in Sources */,
 				71913AC52B8336A2F4D77914 /* MenuBarIconStyle.swift in Sources */,
 				C3DE37BF8D341B8D3E7B322D /* NotificationService.swift in Sources */,
+				5E3732B9D3654D0555B70F3E /* ProcessMonitor.swift in Sources */,
 				F9AFFAEC5AEB129BDAE5E890 /* SessionLogService.swift in Sources */,
 				99F6FAF96D9FCD845A18C221 /* SessionLogView.swift in Sources */,
 				12F33CCF0CFFE112D5C647C7 /* SettingsView.swift in Sources */,
