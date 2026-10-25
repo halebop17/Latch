@@ -254,7 +254,7 @@ final class StatusItemController: NSObject {
     @objc private func toggleDriveKeepAlive() {
         // No drives chosen yet — send the user to pick some instead of toggling a no-op.
         guard !AppSettings.driveKeepAliveVolumeIDs.isEmpty else {
-            SettingsWindowController.shared.show()
+            SettingsWindowController.shared.show(tab: SettingsView.drivesTabTag)
             return
         }
         awakeManager.setDriveKeepAlive(enabled: !AppSettings.driveKeepAliveEnabled)

@@ -21,7 +21,9 @@ final class SettingsWindowController: NSWindowController, NSWindowDelegate {
 
     required init?(coder: NSCoder) { fatalError() }
 
-    func show() {
+    /// Opens Settings, optionally switching to a given tab (a SettingsView.Tab raw value).
+    func show(tab: String? = nil) {
+        if let tab { UserDefaults.standard.set(tab, forKey: SettingsView.selectedTabKey) }
         NSApp.activate(ignoringOtherApps: true)
         if window?.isVisible == true {
             window?.makeKeyAndOrderFront(nil)

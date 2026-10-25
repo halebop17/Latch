@@ -4,6 +4,10 @@ import ServiceManagement
 
 struct SettingsView: View {
 
+    static let selectedTabKey = "com.latch.settingsSelectedTab"
+    static let drivesTabTag   = "drives"
+    @AppStorage(SettingsView.selectedTabKey) private var selectedTab = "general"
+
     // General
     @AppStorage("com.latch.activateOnLaunch")          private var activateOnLaunch          = false
     @AppStorage("com.latch.allowDisplaySleep")         private var allowDisplaySleep          = false
@@ -36,30 +40,37 @@ struct SettingsView: View {
     @AppStorage("com.latch.driveKeepAliveEnabled")     private var driveKeepAliveEnabled      = false
     @AppStorage("com.latch.driveKeepAliveIntervalMinutes") private var driveKeepAliveInterval = 4
     @State private var driveVolumeIDs = Set(AppSettings.driveKeepAliveVolumeIDs)
-    @State private var externalVolumes = DriveKeepAliveService.externalVolumes()
+    @State private var externalVolumes: [DriveKeepAliveService.Volume] = []   // filled in onAppear
 
     var body: some View {
-        TabView {
+        TabView(selection: $selectedTab) {
             generalTab
                 .tabItem { Label("General", systemImage: "gearshape") }
+                .tag("general")
 
             batteryTab
                 .tabItem { Label("Battery", systemImage: "battery.75") }
+                .tag("battery")
 
             CrowScheduleView()
                 .tabItem { Label("Schedule", systemImage: "calendar.badge.clock") }
+                .tag("schedule")
 
             drivesTab
                 .tabItem { Label("Drives", systemImage: "externaldrive") }
+                .tag(SettingsView.drivesTabTag)
 
             advancedTab
                 .tabItem { Label("Advanced", systemImage: "slider.horizontal.3") }
+                .tag("advanced")
 
             SessionLogView()
                 .tabItem { Label("Log", systemImage: "clock.badge.checkmark") }
+                .tag("log")
 
             urlSchemeTab
                 .tabItem { Label("URL Scheme", systemImage: "link") }
+                .tag("urlScheme")
         }
         .frame(width: 460, height: 480)
         .padding()
@@ -219,10 +230,10 @@ struct SettingsView: View {
     private var drivesTab: some View {
         Form {
             Section {
-                Toggle("Keep chosen drives awake while Latch is active", isOn: $driveKeepAliveEnabled)
-                    .onChange(of: driveKeepAliveEnabled) { newValue in
-                        AwakeManager.shared.setDriveKeepAlive(enabled: newValue)
-                    }
+                Toggle("Keep chosen drives awake while Latch is active", isOn: Binding(
+                    get: { driveKeepAliveEnabled },
+                    set: { AwakeManager.shared.setDriveKeepAlive(enabled: $0) }
+                ))
                 Picker("Write every", selection: $driveKeepAliveInterval) {
                     ForEach([1, 2, 3, 4, 5, 8], id: \.self) { m in
                         Text("\(m) min").tag(m)
@@ -251,6 +262,21 @@ struct SettingsView: View {
                                 AwakeManager.shared.refreshDriveKeepAlive()
                             }
                         ))
+                    }
+                }
+                // Chosen drives that aren't plugged in can't be unticked above — offer to forget them.
+                let missing = driveVolumeIDs.subtracting(externalVolumes.map(\.id))
+                if !missing.isEmpty {
+                    HStack {
+                        Text("\(missing.count) chosen drive\(missing.count == 1 ? "" : "s") not connected")
+                            .foregroundStyle(.secondary)
+                        Spacer()
+                        Button("Forget") {
+                            driveVolumeIDs.subtract(missing)
+                            AppSettings.driveKeepAliveVolumeIDs = Array(driveVolumeIDs)
+                            AwakeManager.shared.refreshDriveKeepAlive()
+                        }
+                        .controlSize(.small)
                     }
                 }
             } header: {

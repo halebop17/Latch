@@ -17,6 +17,8 @@ final class DriveKeepAliveService {
     private var timer: Timer?
     // File I/O off the main thread: touching a sleeping drive blocks until it spins up.
     private let ioQueue = DispatchQueue(label: "com.latch.driveKeepAlive", qos: .utility)
+    /// Main-thread only. A hung drive can block a pass indefinitely; skip ticks rather than pile them up.
+    private var passInFlight = false
 
     var isRunning: Bool { timer != nil }
 
@@ -61,11 +63,14 @@ final class DriveKeepAliveService {
 
     private func touchSelectedVolumes() {
         let selected = Set(AppSettings.driveKeepAliveVolumeIDs)
-        // Unplugged drives simply aren't mounted, so they're skipped.
-        let targets = Self.externalVolumes().filter { selected.contains($0.id) }
-        guard !targets.isEmpty else { return }
-        ioQueue.async {
-            for volume in targets { Self.touch(volume.url) }
+        guard !selected.isEmpty, !passInFlight else { return }
+        passInFlight = true
+        ioQueue.async { [weak self] in
+            // Unplugged drives simply aren't mounted, so they're skipped.
+            for volume in Self.externalVolumes() where selected.contains(volume.id) {
+                Self.touch(volume.url)
+            }
+            DispatchQueue.main.async { self?.passInFlight = false }
         }
     }
 
@@ -73,7 +78,7 @@ final class DriveKeepAliveService {
     /// reach the drive; F_FULLFSYNC forces it to the platters, which resets the drive's idle timer.
     private static func touch(_ volumeURL: URL) {
         let path = volumeURL.appendingPathComponent(fileName).path
-        let fd = open(path, O_CREAT | O_WRONLY | O_TRUNC, 0o644)
+        let fd = open(path, O_CREAT | O_WRONLY | O_TRUNC | O_NOFOLLOW, 0o644)
         guard fd >= 0 else { return }
         var stamp = "\(Date().timeIntervalSince1970)\n"
         stamp.withUTF8 { _ = write(fd, $0.baseAddress, $0.count) }
