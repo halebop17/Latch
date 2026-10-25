@@ -22,6 +22,9 @@ struct AppSettings {
         static let hotkeyKeyCode                = "com.latch.hotkeyKeyCode"
         static let hotkeyModifiers              = "com.latch.hotkeyModifiers"
         static let hotkeyDisplay                = "com.latch.hotkeyDisplay"
+        static let driveKeepAliveEnabled        = "com.latch.driveKeepAliveEnabled"
+        static let driveKeepAliveVolumeIDs      = "com.latch.driveKeepAliveVolumeIDs"
+        static let driveKeepAliveInterval       = "com.latch.driveKeepAliveIntervalMinutes"
     }
 
     // MARK: - Properties
@@ -125,5 +128,28 @@ struct AppSettings {
     static var hotkeyDisplay: String {
         get { UserDefaults.standard.string(forKey: Keys.hotkeyDisplay) ?? "⌥⌘K" }
         set { UserDefaults.standard.set(newValue, forKey: Keys.hotkeyDisplay) }
+    }
+
+    // MARK: - Drive keep-alive
+
+    /// Keep the chosen external drives spinning while a session is active.
+    static var driveKeepAliveEnabled: Bool {
+        get { UserDefaults.standard.bool(forKey: Keys.driveKeepAliveEnabled) }
+        set { UserDefaults.standard.set(newValue, forKey: Keys.driveKeepAliveEnabled) }
+    }
+
+    /// Volume UUIDs of the drives to keep awake.
+    static var driveKeepAliveVolumeIDs: [String] {
+        get { UserDefaults.standard.stringArray(forKey: Keys.driveKeepAliveVolumeIDs) ?? [] }
+        set { UserDefaults.standard.set(newValue, forKey: Keys.driveKeepAliveVolumeIDs) }
+    }
+
+    /// Minutes between writes; most external HDDs spin down after 5–10 idle minutes.
+    static var driveKeepAliveIntervalMinutes: Int {
+        get {
+            let v = UserDefaults.standard.integer(forKey: Keys.driveKeepAliveInterval)
+            return v > 0 ? v : 4
+        }
+        set { UserDefaults.standard.set(newValue, forKey: Keys.driveKeepAliveInterval) }
     }
 }

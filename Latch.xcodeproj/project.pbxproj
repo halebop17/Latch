@@ -14,6 +14,7 @@
 		0A0D13869728FB44C1DFACD4 /* CrowSchedule.swift in Sources */ = {isa = PBXBuildFile; fileRef = 350C39A4E351CCB317C77CFC /* CrowSchedule.swift */; };
 		10D6E61E412DDEDD769D29F4 /* LoginItemManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 436CD32D766D4C966D1A28DF /* LoginItemManager.swift */; };
 		12F33CCF0CFFE112D5C647C7 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1121871CBE8DA3D71BDF8BF0 /* SettingsView.swift */; };
+		1D04505223506EB791171E05 /* DriveKeepAliveService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 29E0A55501E26CBF2C662CE9 /* DriveKeepAliveService.swift */; };
 		2DF704922CE7C10B2B412641 /* CrowScheduleService.swift in Sources */ = {isa = PBXBuildFile; fileRef = C0CE379896A7665E4F9666A5 /* CrowScheduleService.swift */; };
 		3D0CBE0877A8B961D74F3FDF /* crow.wav in Resources */ = {isa = PBXBuildFile; fileRef = 3EDCF3C36FB1E05CDA8C3EED /* crow.wav */; };
 		40BC157DDA20B57A118C84D8 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 01219C9AD111129EAA237236 /* Assets.xcassets */; };
@@ -49,6 +50,7 @@
 		145907C4902400DA3DCF28A8 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		20EFCE0BFB651FBB31413E91 /* DisplayMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DisplayMonitor.swift; sourceTree = "<group>"; };
 		2603EABAF98285AC56154C25 /* LatchIntents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LatchIntents.swift; sourceTree = "<group>"; };
+		29E0A55501E26CBF2C662CE9 /* DriveKeepAliveService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DriveKeepAliveService.swift; sourceTree = "<group>"; };
 		320F1DE6D921943C28A5F16C /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = en.lproj/Localizable.strings; sourceTree = "<group>"; };
 		350C39A4E351CCB317C77CFC /* CrowSchedule.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CrowSchedule.swift; sourceTree = "<group>"; };
 		372650B7AFCBC175345BF563 /* ProcessMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProcessMonitor.swift; sourceTree = "<group>"; };
@@ -129,6 +131,7 @@
 				C0CE379896A7665E4F9666A5 /* CrowScheduleService.swift */,
 				FC8A47067C8D0E2847D8B3B6 /* CrowSoundPlayer.swift */,
 				20EFCE0BFB651FBB31413E91 /* DisplayMonitor.swift */,
+				29E0A55501E26CBF2C662CE9 /* DriveKeepAliveService.swift */,
 				536481311EFCCF29A23F2FD4 /* FocusModeMonitor.swift */,
 				0C1E2C1CA0DE7CC6944C8A22 /* GlobalHotkeyService.swift */,
 				436CD32D766D4C966D1A28DF /* LoginItemManager.swift */,
@@ -308,6 +311,7 @@
 				FC294D08D93887331F1598A4 /* CrowScheduleView.swift in Sources */,
 				01C6D913333714C9A0C71C7B /* CrowSoundPlayer.swift in Sources */,
 				78710A49AC3D3D9E1BB54DCE /* DisplayMonitor.swift in Sources */,
+				1D04505223506EB791171E05 /* DriveKeepAliveService.swift in Sources */,
 				01A57C4669ADE14F655916E6 /* FocusModeMonitor.swift in Sources */,
 				F5F870FF1EF8CE14EF7A145C /* GlobalHotkeyService.swift in Sources */,
 				8736B32632C7B04288AB8B89 /* LatchApp.swift in Sources */,

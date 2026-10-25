@@ -148,6 +148,19 @@ final class StatusItemController: NSObject {
 
         menu.addItem(.separator())
 
+        // Keep Drives Awake — applies during sessions; can be flipped mid-session
+        let hasDrives = !AppSettings.driveKeepAliveVolumeIDs.isEmpty
+        let drivesItem = NSMenuItem(title: hasDrives ? "Keep Drives Awake" : "Keep Drives Awake…",
+                                    action: #selector(toggleDriveKeepAlive), keyEquivalent: "")
+        drivesItem.target = self
+        drivesItem.state = (hasDrives && AppSettings.driveKeepAliveEnabled) ? .on : .off
+        drivesItem.toolTip = hasDrives
+            ? "Stops the chosen external drives from spinning down while Latch is active"
+            : "Choose which drives to keep awake in Settings"
+        menu.addItem(drivesItem)
+
+        menu.addItem(.separator())
+
         let settingsItem = NSMenuItem(
             title: "Settings…",
             action: #selector(openSettings),
@@ -236,6 +249,15 @@ final class StatusItemController: NSObject {
             .sorted {
                 ($0.localizedName ?? "").localizedCaseInsensitiveCompare($1.localizedName ?? "") == .orderedAscending
             }
+    }
+
+    @objc private func toggleDriveKeepAlive() {
+        // No drives chosen yet — send the user to pick some instead of toggling a no-op.
+        guard !AppSettings.driveKeepAliveVolumeIDs.isEmpty else {
+            SettingsWindowController.shared.show()
+            return
+        }
+        awakeManager.setDriveKeepAlive(enabled: !AppSettings.driveKeepAliveEnabled)
     }
 
     @objc private func deactivateAction() {

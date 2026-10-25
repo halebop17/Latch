@@ -32,6 +32,12 @@ struct SettingsView: View {
 
     @State private var loginItemEnabled = LoginItemManager.isEnabled
 
+    // Drives
+    @AppStorage("com.latch.driveKeepAliveEnabled")     private var driveKeepAliveEnabled      = false
+    @AppStorage("com.latch.driveKeepAliveIntervalMinutes") private var driveKeepAliveInterval = 4
+    @State private var driveVolumeIDs = Set(AppSettings.driveKeepAliveVolumeIDs)
+    @State private var externalVolumes = DriveKeepAliveService.externalVolumes()
+
     var body: some View {
         TabView {
             generalTab
@@ -42,6 +48,9 @@ struct SettingsView: View {
 
             CrowScheduleView()
                 .tabItem { Label("Schedule", systemImage: "calendar.badge.clock") }
+
+            drivesTab
+                .tabItem { Label("Drives", systemImage: "externaldrive") }
 
             advancedTab
                 .tabItem { Label("Advanced", systemImage: "slider.horizontal.3") }
@@ -205,6 +214,59 @@ struct SettingsView: View {
             }
         }
         .formStyle(.grouped)
+    }
+
+    private var drivesTab: some View {
+        Form {
+            Section {
+                Toggle("Keep chosen drives awake while Latch is active", isOn: $driveKeepAliveEnabled)
+                    .onChange(of: driveKeepAliveEnabled) { newValue in
+                        AwakeManager.shared.setDriveKeepAlive(enabled: newValue)
+                    }
+                Picker("Write every", selection: $driveKeepAliveInterval) {
+                    ForEach([1, 2, 3, 4, 5, 8], id: \.self) { m in
+                        Text("\(m) min").tag(m)
+                    }
+                }
+                .onChange(of: driveKeepAliveInterval) { _ in
+                    AwakeManager.shared.refreshDriveKeepAlive()
+                }
+            } footer: {
+                Text("Many external hard drives spin down on their own timer, which makes Finder and Open/Save dialogs stall while they wake. Latch briefly writes and deletes a tiny hidden file on each chosen drive to keep it spinning. You can also toggle this from the menu bar.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+
+            Section {
+                if externalVolumes.isEmpty {
+                    Text("No external drives connected.")
+                        .foregroundStyle(.secondary)
+                } else {
+                    ForEach(externalVolumes) { volume in
+                        Toggle(volume.name, isOn: Binding(
+                            get: { driveVolumeIDs.contains(volume.id) },
+                            set: { on in
+                                if on { driveVolumeIDs.insert(volume.id) } else { driveVolumeIDs.remove(volume.id) }
+                                AppSettings.driveKeepAliveVolumeIDs = Array(driveVolumeIDs)
+                                AwakeManager.shared.refreshDriveKeepAlive()
+                            }
+                        ))
+                    }
+                }
+            } header: {
+                HStack {
+                    Text("Drives")
+                    Spacer()
+                    Button("Refresh") { externalVolumes = DriveKeepAliveService.externalVolumes() }
+                        .controlSize(.small)
+                }
+            }
+        }
+        .formStyle(.grouped)
+        .onAppear {
+            externalVolumes = DriveKeepAliveService.externalVolumes()
+            driveVolumeIDs = Set(AppSettings.driveKeepAliveVolumeIDs)
+        }
     }
 
     private var advancedTab: some View {

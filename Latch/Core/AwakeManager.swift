@@ -20,6 +20,7 @@ final class AwakeManager: ObservableObject {
 
     private let caffeineService = CaffeineService()
     private let processMonitor  = ProcessMonitor()
+    private let driveKeepAlive  = DriveKeepAliveService()
 
     // Phase 2 services
     let batteryMonitor     = BatteryMonitor()
@@ -120,6 +121,7 @@ final class AwakeManager: ObservableObject {
 
         batteryMonitor.startMonitoring()
         focusMonitor.startMonitoring()
+        refreshDriveKeepAlive()
 
         if AppSettings.playCrowSound {
             CrowSoundPlayer.play()
@@ -171,6 +173,22 @@ final class AwakeManager: ObservableObject {
         guard isActive else { return }
         caffeineService.stop()
         finishDeactivation(sendNotification: true)
+    }
+
+    /// Turns drive keep-alive on/off; takes effect immediately if a session is running.
+    func setDriveKeepAlive(enabled: Bool) {
+        AppSettings.driveKeepAliveEnabled = enabled
+        refreshDriveKeepAlive()
+    }
+
+    /// (Re)starts or stops drive keep-alive to match the current session and settings —
+    /// call after changing the chosen drives or interval.
+    func refreshDriveKeepAlive() {
+        if isActive && AppSettings.driveKeepAliveEnabled {
+            driveKeepAlive.start()
+        } else {
+            driveKeepAlive.stop()
+        }
     }
 
     func toggle() {
@@ -245,6 +263,7 @@ final class AwakeManager: ObservableObject {
         activatedSeconds = 0
         batteryMonitor.stopMonitoring()
         focusMonitor.stopMonitoring()
+        driveKeepAlive.stop()
 
         if sendNotification && AppSettings.notificationsEnabled {
             NotificationService.shared.notifyDeactivated()

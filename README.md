@@ -19,6 +19,7 @@
 - **Choice of menu bar icon** — Octopus (default), Meerkat, or Night Owl, each with an awake/asleep state
 - **Allow display sleep** — keep the system awake but let the screen turn off
 - **Quit on timer expiry** option
+- **Keep drives awake** — stops chosen external hard drives from spinning down during a session, so Finder and Open/Save dialogs don't stall while a sleeping drive wakes. Toggle it from the menu bar any time; pick drives and the write interval under Settings → Drives
 
 ### Smart Auto-Activation
 - **Schedule** — define weekly time windows (e.g. Mon–Fri 9:00–18:00) where Latch activates automatically
@@ -126,6 +127,7 @@ AwakeManager         — state machine, wires all services together
 StatusItemController — NSStatusItem, icon, countdown display
 CrowScheduleService  — 30s tick checks time-window schedules
 ProcessMonitor       — kqueue DispatchSource fires when a watched PID exits
+DriveKeepAliveService — writes + F_FULLFSYNCs + deletes a hidden file on chosen drives every few minutes
 GlobalHotkeyService  — Carbon RegisterEventHotKey (no Accessibility needed)
 FocusModeMonitor     — reads the Do Not Disturb assertions file (needs Full Disk Access)
 SessionLogService    — persists last 50 sessions to UserDefaults
