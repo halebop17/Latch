@@ -1,6 +1,10 @@
+<p align="center">
+  <img src="Latch/Assets.xcassets/AppIcon.appiconset/icon_256.png" width="160" alt="Latch icon">
+</p>
+
 # Latch 🐙
 
-**Latch** keeps your Mac awake — a macOS menu bar app entirely in Swift with exclusive features.
+**Latch** keeps your Mac awake — a lightweight menu bar app with a few tricks the others don't have.
 
 ![macOS 13+](https://img.shields.io/badge/macOS-13%2B-blue)
 ![Swift 5](https://img.shields.io/badge/Swift-5-orange)
@@ -8,130 +12,44 @@
 
 ---
 
-## Features
+## What is it?
 
-### Core
-- **One-click toggle** — click the menu bar icon to keep your Mac awake
-- **Duration presets** — 5 min · 15 min · 30 min · 1 h · 2 h · 5 h · Indefinite
-- **Until…** — stay awake until a chosen clock time, and **Extend by 15 min** on a running timer
-- **Latch onto an app** — pick a running app and stay awake *until it quits*, then sleep and tell you it finished. Perfect for exports, uploads, or long builds — no guessing how long to set. (For command-line jobs, see `waitpid` in the URL scheme.)
-- **Live countdown** in the menu bar (`🐙 1:47`)
-- **Choice of menu bar icon** — Octopus (default), Meerkat, or Night Owl, each with an awake/asleep state
-- **Allow display sleep** — keep the system awake but let the screen turn off
-- **Quit on timer expiry** option
-- **Keep drives awake** — stops chosen external hard drives from spinning down during a session, so Finder and Open/Save dialogs don't stall while a sleeping drive wakes. Toggle it from the menu bar any time; pick drives and the write interval under Settings → Drives
+Sometimes you don't want your Mac to fall asleep: a long download, a video export, a presentation, or just reading without touching the trackpad. Latch sits in your menu bar as a little octopus. Click it, and your Mac stays awake. Click it again, and everything goes back to normal.
 
-### Smart Auto-Activation
-- **Schedule** — define weekly time windows (e.g. Mon–Fri 9:00–18:00) where Latch activates automatically
-- **External display** — auto-activate when a monitor is connected
-- **Restore on user switch** — resumes the previous session after fast-user-switching back
+There are plenty of apps that do this. Amphetamine is the best-known one. Latch is for people who want something **small and simple** that does the job without a wall of settings, plus a couple of features that are genuinely handy.
 
-### Smart Auto-Deactivation
-- **Battery threshold** — deactivates below a configurable % (default 20%), on battery only
-- **Low Power Mode** — deactivates automatically when Low Power Mode turns on
-- **Focus** — deactivates while a Focus mode is engaged (requires Full Disk Access)
+## What makes it different
 
-### Developer / Power-User
-- **Global hotkey** — toggle from anywhere (default ⌥⌘K, configurable), no Accessibility permission required
-- **URL scheme** — scriptable from Terminal or Apple Shortcuts:
-  ```
-  open "latch:///activate?minutes=30"
-  open "latch:///deactivate"
-  open "latch:///toggle"
-  ```
-- **Apple Shortcuts** — three intents: Activate, Deactivate, Toggle
-- **Session log** — view the last 50 awake sessions with duration and reason
-- **Start at Login** via `SMAppService` (no helper app needed)
-- **Notifications** on activate/deactivate
+### 🔗 Latch onto an app
+Instead of guessing how long an export or upload will take, pick the app from the menu. Latch keeps your Mac awake **until that app quits**, then lets it sleep and tells you it's done. No timers to set, no coming back to find your Mac asleep halfway through.
 
----
+### 💾 Keep your drives awake
+Many external hard drives go to sleep on their own after a few idle minutes. When you then open Finder or a Save dialog, everything freezes for several seconds while the drive spins back up. Latch can keep your chosen drives awake while it's active. You can switch this on or off from the menu bar at any time.
 
-## Requirements
+## Everything else it does
 
-- macOS 13 Ventura or later
-- Apple Silicon or Intel
+- **One click** to stay awake, or pick a time: 5 minutes up to 5 hours, or until you turn it off
+- **Until a set time**, for example "stay awake until 6 pm", and extend a running timer by 15 minutes
+- **Countdown in the menu bar**, so you can see how long is left
+- **Let the screen turn off** while keeping the Mac itself awake
+- **Schedules**: stay awake automatically during set hours, for example weekdays 9 to 6
+- **Turns itself on** when you plug in an external monitor
+- **Turns itself off** when your battery gets low, when Low Power Mode is on, or when a Focus mode starts
+- **Keyboard shortcut** to switch it on and off from anywhere (⌥⌘K by default)
+- **Works with Apple Shortcuts**
+- **Starts at login** if you want it to
+- **Three icon styles** to choose from: octopus, meerkat or night owl
 
----
+## Getting it
 
-## Installation
-
-### Direct Download
 1. Download `Latch.dmg` from the [latest release](https://github.com/halebop17/Latch/releases/latest)
-2. Open the DMG and drag **Latch.app** to `/Applications`
-3. Launch Latch — the octopus icon appears in your menu bar
+2. Open it and drag **Latch** into your Applications folder
+3. Open Latch. The octopus appears in your menu bar.
 
-### Homebrew (coming soon)
-```bash
-brew install --cask latch
-```
+**Click** the octopus to switch Latch on or off. **Right-click** it for everything else.
 
----
+Requires macOS 13 Ventura or later. Works on Apple Silicon and Intel Macs.
 
-## Building from Source
+## License
 
-```bash
-# Prerequisites
-brew install xcodegen
-
-# Clone and build
-git clone https://github.com/halebop17/Latch.git
-cd Latch
-xcodegen generate
-xcodebuild -scheme Latch -configuration Debug -derivedDataPath .build build
-open .build/Build/Products/Debug/Latch.app
-```
-
-### Regenerating assets
-The menu bar icons, app icon, and activation sound are drawn/synthesized in code:
-```bash
-swift tools/make-status-icons.swift --emit   # Octopus / Meerkat / Night Owl glyphs
-swift tools/make-app-icon.swift              # AppIcon
-swift tools/make-crow-sound.swift            # activation chime
-```
-
-### Package a DMG
-```bash
-# Optional: brew install create-dmg  (for a styled installer window)
-./Distribution/build-dmg.sh
-```
-
----
-
-## URL Scheme Reference
-
-| URL | Action |
-|-----|--------|
-| `latch:///activate` | Activate indefinitely |
-| `latch:///activate?minutes=N` | Activate for N minutes |
-| `latch:///activate?hours=N` | Activate for N hours |
-| `latch:///activate?seconds=N` | Activate for N seconds |
-| `latch:///activate?waitpid=PID` | Activate until process `PID` exits |
-| `latch:///deactivate` | Deactivate |
-| `latch:///toggle` | Toggle current state |
-
-Wait for a command-line job to finish, then let the Mac sleep:
-
-```bash
-make -j8 & open "latch:///activate?waitpid=$!"; wait
-```
-
----
-
-## Architecture
-
-Latch is 100% Swift. No private APIs, no IOKit calls from the app — everything goes through `/usr/bin/caffeinate`, Apple's own official sleep-prevention tool, tied to the app's PID with `-w` so it auto-exits if the app crashes.
-
-```
-CaffeineService      — spawns / kills caffeinate subprocess
-AwakeManager         — state machine, wires all services together
-StatusItemController — NSStatusItem, icon, countdown display
-CrowScheduleService  — 30s tick checks time-window schedules
-ProcessMonitor       — kqueue DispatchSource fires when a watched PID exits
-DriveKeepAliveService — writes + F_FULLFSYNCs + deletes a hidden file on chosen drives every few minutes
-GlobalHotkeyService  — Carbon RegisterEventHotKey (no Accessibility needed)
-FocusModeMonitor     — reads the Do Not Disturb assertions file (needs Full Disk Access)
-SessionLogService    — persists last 50 sessions to UserDefaults
-BatteryMonitor       — IOKit.ps polling every 60s
-LowPowerModeMonitor  — KVO on ProcessInfo.isLowPowerModeEnabled
-DisplayMonitor       — NSApplication.didChangeScreenParametersNotification
-```
+MIT, free to use.
