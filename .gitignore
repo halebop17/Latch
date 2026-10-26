@@ -35,3 +35,6 @@ Packages/
 
 # Xcode build output (xcodebuild -derivedDataPath build)
 build/
+
+# Local Claude Code instructions (not published)
+CLAUDE.md
