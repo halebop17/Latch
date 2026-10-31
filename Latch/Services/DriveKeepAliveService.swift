@@ -77,7 +77,8 @@ final class DriveKeepAliveService {
     /// Write + F_FULLFSYNC + delete.  A plain write may sit in the page cache and never
     /// reach the drive; F_FULLFSYNC forces it to the platters, which resets the drive's idle timer.
     private static func touch(_ volumeURL: URL) {
-        let path = volumeURL.appendingPathComponent(fileName).path
+        guard let dir = writableDirectory(on: volumeURL) else { return }
+        let path = dir.appendingPathComponent(fileName).path
         let fd = open(path, O_CREAT | O_WRONLY | O_TRUNC | O_NOFOLLOW, 0o644)
         guard fd >= 0 else { return }
         var stamp = "\(Date().timeIntervalSince1970)\n"
@@ -85,5 +86,17 @@ final class DriveKeepAliveService {
         _ = fcntl(fd, F_FULLFSYNC)
         close(fd)
         unlink(path)
+    }
+
+    /// The volume root if writable, else the first writable top-level folder — drives
+    /// that respect ownership often have a root-owned root the user can't write to.
+    private static func writableDirectory(on volumeURL: URL) -> URL? {
+        if access(volumeURL.path, W_OK) == 0 { return volumeURL }
+        let children = (try? FileManager.default.contentsOfDirectory(
+            at: volumeURL, includingPropertiesForKeys: [.isDirectoryKey], options: [.skipsHiddenFiles])) ?? []
+        return children.first { url in
+            (try? url.resourceValues(forKeys: [.isDirectoryKey]))?.isDirectory == true
+                && access(url.path, W_OK) == 0
+        }
     }
 }

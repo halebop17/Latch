@@ -22,8 +22,8 @@ targets:
     info:
       path: Latch/Info.plist
       properties:
-        CFBundleVersion: "1"
-        CFBundleShortVersionString: "1.0.0"
+        CFBundleVersion: "2"
+        CFBundleShortVersionString: "1.1.0"
         LSUIElement: true
         NSPrincipalClass: NSApplication
         NSHighResolutionCapable: true

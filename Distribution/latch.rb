@@ -1,5 +1,5 @@
 cask "latch" do
-  version "1.0.0"
+  version "1.1.0"
   sha256 "PLACEHOLDER_SHA256"
 
   url "https://github.com/YOUR_GITHUB_USER/latch/releases/download/v#{version}/Latch.dmg"
