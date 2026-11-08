@@ -41,6 +41,10 @@ struct SettingsView: View {
     @AppStorage("com.latch.driveKeepAliveIntervalMinutes") private var driveKeepAliveInterval = 4
     @State private var driveVolumeIDs = Set(AppSettings.driveKeepAliveVolumeIDs)
     @State private var externalVolumes: [DriveKeepAliveService.Volume] = []   // filled in onAppear
+    @State private var unwritableDriveIDs: Set<String> = []   // chosen drives Latch can't write to
+    @State private var apfsContainers: [String: String] = [:] // volume ID → APFS container, for those drives
+    @State private var isAddingKeepAwakeVolume = false
+    @State private var keepAwakeVolumeError: String?
 
     var body: some View {
         TabView(selection: $selectedTab) {
@@ -260,8 +264,12 @@ struct SettingsView: View {
                                 if on { driveVolumeIDs.insert(volume.id) } else { driveVolumeIDs.remove(volume.id) }
                                 AppSettings.driveKeepAliveVolumeIDs = Array(driveVolumeIDs)
                                 AwakeManager.shared.refreshDriveKeepAlive()
+                                checkChosenDrives()
                             }
                         ))
+                        if driveVolumeIDs.contains(volume.id) && unwritableDriveIDs.contains(volume.id) {
+                            unwritableDriveWarning(for: volume)
+                        }
                     }
                 }
                 // Chosen drives that aren't plugged in can't be unticked above — offer to forget them.
@@ -283,8 +291,11 @@ struct SettingsView: View {
                 HStack {
                     Text("Drives")
                     Spacer()
-                    Button("Refresh") { externalVolumes = DriveKeepAliveService.externalVolumes() }
-                        .controlSize(.small)
+                    Button("Refresh") {
+                        externalVolumes = DriveKeepAliveService.externalVolumes()
+                        checkChosenDrives()
+                    }
+                    .controlSize(.small)
                 }
             }
         }
@@ -292,6 +303,74 @@ struct SettingsView: View {
         .onAppear {
             externalVolumes = DriveKeepAliveService.externalVolumes()
             driveVolumeIDs = Set(AppSettings.driveKeepAliveVolumeIDs)
+            checkChosenDrives()
+        }
+    }
+
+    @ViewBuilder
+    private func unwritableDriveWarning(for volume: DriveKeepAliveService.Volume) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Label("Latch can't write to this drive, so it can't keep it awake.",
+                  systemImage: "exclamationmark.triangle.fill")
+                .font(.caption)
+                .foregroundStyle(.orange)
+            if let container = apfsContainers[volume.id] {
+                Text("Latch can add a small “Keep Awake” volume to the same disk and keep that awake instead. It shares the disk's free space and doesn't touch anything on \(volume.name).")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                Button(isAddingKeepAwakeVolume ? "Adding…" : "Add “Keep Awake” Volume") {
+                    addKeepAwakeVolume(replacing: volume, container: container)
+                }
+                .controlSize(.small)
+                .disabled(isAddingKeepAwakeVolume)
+                if let keepAwakeVolumeError {
+                    Text(keepAwakeVolumeError)
+                        .font(.caption)
+                        .foregroundStyle(.red)
+                }
+            } else {
+                Text("Select the drive in Finder, choose File → Get Info, and tick “Ignore ownership on this volume”.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+        }
+    }
+
+    /// Finds chosen drives Latch can't write to.  Off the main thread: it touches the drives.
+    private func checkChosenDrives() {
+        let chosen = externalVolumes.filter { driveVolumeIDs.contains($0.id) }
+        DispatchQueue.global(qos: .userInitiated).async {
+            let unwritable = chosen.filter { !DriveKeepAliveService.canKeepAwake($0) }
+            let containers = unwritable.compactMap { volume in
+                DriveKeepAliveService.apfsContainer(of: volume).map { (volume.id, $0) }
+            }
+            DispatchQueue.main.async {
+                unwritableDriveIDs = Set(unwritable.map(\.id))
+                apfsContainers = Dictionary(uniqueKeysWithValues: containers)
+            }
+        }
+    }
+
+    /// Adds a "Keep Awake" volume next to `volume` and keeps that awake in its place.
+    private func addKeepAwakeVolume(replacing volume: DriveKeepAliveService.Volume, container: String) {
+        isAddingKeepAwakeVolume = true
+        keepAwakeVolumeError = nil
+        DispatchQueue.global(qos: .userInitiated).async {
+            let result = Result { try DriveKeepAliveService.addKeepAwakeVolume(to: container) }
+            DispatchQueue.main.async {
+                isAddingKeepAwakeVolume = false
+                switch result {
+                case .success(let newID):
+                    driveVolumeIDs.remove(volume.id)
+                    driveVolumeIDs.insert(newID)
+                    AppSettings.driveKeepAliveVolumeIDs = Array(driveVolumeIDs)
+                    AwakeManager.shared.refreshDriveKeepAlive()
+                    externalVolumes = DriveKeepAliveService.externalVolumes()
+                    checkChosenDrives()
+                case .failure(let error):
+                    keepAwakeVolumeError = error.localizedDescription
+                }
+            }
         }
     }
 

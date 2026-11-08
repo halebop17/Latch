@@ -59,6 +59,40 @@ final class DriveKeepAliveService {
         .sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
     }
 
+    /// Whether Latch has somewhere on this volume to write.  Time Machine drives, for one,
+    /// can't be written to by anything but Time Machine.  Touches the drive — call off the main thread.
+    static func canKeepAwake(_ volume: Volume) -> Bool {
+        writableDirectory(on: volume.url) != nil
+    }
+
+    /// The APFS container (e.g. "disk11") holding this volume, or nil if it isn't APFS.
+    static func apfsContainer(of volume: Volume) -> String? {
+        diskutilInfo(volume.url.path)?["APFSContainerReference"] as? String
+    }
+
+    /// Adds a "Keep Awake" volume to an APFS container and returns its volume UUID.
+    /// Writing to it keeps the whole physical disk spinning, without touching the other
+    /// volumes; it shares the container's free space.
+    static func addKeepAwakeVolume(to container: String) throws -> String {
+        let (status, output) = diskutil(["apfs", "addVolume", container, "APFS", "Keep Awake"])
+        // diskutil prints e.g. "Disk from APFS operation: disk11s2" on success.
+        guard status == 0,
+              let line = output.split(separator: "\n").first(where: { $0.hasPrefix("Disk from APFS operation:") }),
+              let bsdName = line.split(separator: " ").last,
+              let uuid = diskutilInfo(String(bsdName))?["VolumeUUID"] as? String
+        else {
+            let lines = output.split(separator: "\n")
+            let reason = lines.first { $0.localizedCaseInsensitiveContains("error") } ?? lines.last
+            throw DriveError(message: reason.map(String.init) ?? "diskutil couldn't add the volume.")
+        }
+        return uuid
+    }
+
+    struct DriveError: LocalizedError {
+        let message: String
+        var errorDescription: String? { message }
+    }
+
     // MARK: - Private
 
     private func touchSelectedVolumes() {
@@ -98,5 +132,25 @@ final class DriveKeepAliveService {
             (try? url.resourceValues(forKeys: [.isDirectoryKey]))?.isDirectory == true
                 && access(url.path, W_OK) == 0
         }
+    }
+
+    private static func diskutilInfo(_ target: String) -> [String: Any]? {
+        let (status, output) = diskutil(["info", "-plist", target])
+        guard status == 0, let data = output.data(using: .utf8) else { return nil }
+        return try? PropertyListSerialization.propertyList(from: data, format: nil) as? [String: Any]
+    }
+
+    /// Runs diskutil and returns its exit status and combined stdout/stderr.
+    private static func diskutil(_ arguments: [String]) -> (Int32, String) {
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: "/usr/sbin/diskutil")
+        process.arguments = arguments
+        let pipe = Pipe()
+        process.standardOutput = pipe
+        process.standardError = pipe
+        do { try process.run() } catch { return (-1, error.localizedDescription) }
+        let data = pipe.fileHandleForReading.readDataToEndOfFile()
+        process.waitUntilExit()
+        return (process.terminationStatus, String(decoding: data, as: UTF8.self))
     }
 }
