@@ -8,7 +8,7 @@
 
 ![macOS 13+](https://img.shields.io/badge/macOS-13%2B-blue)
 ![Swift 5](https://img.shields.io/badge/Swift-5-orange)
-![License MIT](https://img.shields.io/badge/license-MIT-green)
+![License PolyForm Noncommercial](https://img.shields.io/badge/license-PolyForm%20Noncommercial-yellow)
 
 ---
 
@@ -52,4 +52,4 @@ Requires macOS 13 Ventura or later. Works on Apple Silicon and Intel Macs.
 
 ## License
 
-MIT, free to use.
+[PolyForm Noncommercial 1.0.0](LICENSE). You can use, modify, and share Latch for free for any non-commercial purpose, as long as you keep the copyright notice and credit this project. Commercial use is not allowed without permission. Versions released before this change remain under the MIT license.
